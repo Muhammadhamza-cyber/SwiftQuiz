@@ -35,7 +35,6 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <!-- Main Quiz Container - Optimized for all screen sizes -->
-    <!-- max-w-xl for mobile, max-w-3xl for tablets/laptops, max-w-5xl for projectors/large screens -->
     <div id="quiz-container" class="w-full max-w-xl sm:max-w-3xl lg:max-w-5xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl transition-all duration-300">
         
         <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-indigo-700 mb-6 text-center">SwiftQuiz</h1>
@@ -54,6 +53,20 @@
         <!-- 1. QUIZ GENERATOR SCREEN (NEW FEATURE) -->
         <!-- ---------------------------------------------------- -->
         <div id="generator-screen" class="">
+            <!-- API Key Error / Status Message Box -->
+            <div id="api-key-status" class="hidden p-4 mb-6 rounded-xl border border-red-300 bg-red-100">
+                <p class="font-bold text-red-800 flex items-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    API Key Error Detected (403 Forbidden)
+                </p>
+                <p id="api-key-instructions" class="text-sm text-red-700">
+                    To fix this, please paste your personal Gemini API key directly into the `apiKey` variable in the code.
+                </p>
+            </div>
+            <!-- End API Key Error / Status Message Box -->
+
             <div class="mb-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
                 <h3 class="font-bold text-yellow-800 mb-2 flex items-center text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
@@ -255,6 +268,7 @@ Berlin</pre>
         const contentFile = document.getElementById('content-file');
         const generateButton = document.getElementById('generate-button');
         const genStatusMessage = document.getElementById('gen-status-message');
+        const apiKeyStatusBox = document.getElementById('api-key-status');
         
         // Existing elements
         const questionText = document.getElementById('question-text');
@@ -370,10 +384,17 @@ Berlin</pre>
                     if (response.ok) {
                         return response;
                     }
+                    // Handle rate limiting (429) or server errors (>= 500)
                     if (response.status === 429 || response.status >= 500) {
                         const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
                         continue;
+                    }
+                    // Handle specific errors like 403 Forbidden
+                    if (response.status === 403) {
+                        // Display error box on 403
+                        apiKeyStatusBox.classList.remove('hidden');
+                        throw new Error(`API Error: HTTP 403 Forbidden. Check your API key.`);
                     }
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 } catch (error) {
@@ -385,10 +406,9 @@ Berlin</pre>
         }
 
         async function generateQuizFromContent(content, count, optionCount) {
-            // IMPORTANT: If running this file outside of a supported Canvas environment (e.g., locally), 
-            // you must replace the empty quotes below with your actual Gemini API key 
-            // to avoid a 403 Forbidden error.
-            const apiKey = ""; 
+            // Check for the global variable set by the execution environment.
+            // If it's not set (e.g., running locally or injection failed), it defaults to "".
+            const apiKey = typeof __api_key !== 'undefined' ? __api_key : ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             
             const systemPrompt = `You are a world-class test designer. Your goal is to generate ${count} multiple-choice quiz questions from the provided material. The questions must be challenging, focus on critical concepts for exam success, and be formatted perfectly for automated parsing.`;
@@ -415,6 +435,8 @@ ${content}
                 systemInstruction: { parts: [{ text: systemPrompt }] },
             };
 
+            // Reset UI status
+            apiKeyStatusBox.classList.add('hidden');
             genStatusMessage.textContent = 'Generating questions... This may take a moment.';
             generateButton.disabled = true;
             generateButton.classList.remove('bg-green-600');
@@ -445,12 +467,14 @@ ${content}
                     showScreen('start-screen');
 
                 } else {
-                    throw new Error("LLM did not return text or the response structure was invalid.");
+                    // LLM returned but with no text (e.g., safety blocked it)
+                    throw new Error("The AI model did not return text. Content may have violated safety policies or the prompt was too vague.");
                 }
 
             } catch (error) {
                 console.error("API Generation Error:", error);
-                genStatusMessage.textContent = `❌ Generation failed: ${error.message}. Please check your source material and ensure your API key is valid.`;
+                // If it's the 403 error caught in exponentialBackoffFetch, the error box is already visible.
+                genStatusMessage.textContent = `❌ Generation failed: ${error.message}. Please check your source material or use a manual key.`;
                 genStatusMessage.classList.remove('text-gray-700', 'text-green-500');
                 genStatusMessage.classList.add('text-red-500');
             } finally {
