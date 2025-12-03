@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftQuiz Generator - Generate Quizzes from Any Text</title>
+    
+    <!-- IMPORTANT SEO TAGS FOR DISCOVERY -->
+    <meta name="description" content="Generate and take custom multiple-choice quizzes quickly using any source text or file. Optimized for SwiftQuiz.com across all devices.">
+    <meta name="keywords" content="quiz generator, custom quiz, swift quiz, study tool, exam prep, flashcards, learning tool">
+    <link rel="canonical" href="https://swiftquiz.com">
+    <!-- Open Graph/Social Tags (optional but recommended for sharing on platforms like Facebook/Twitter) -->
+    <meta property="og:title" content="SwiftQuiz - Generate Quizzes from Any Text">
+    <meta property="og:description" content="The fastest way to generate and test yourself on study material from a text source.">
+    <meta property="og:url" content="https://swiftquiz.com">
+    <meta property="og:type" content="website">
+
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* Tailwind slate-100 */
+        }
+        /* Ensure the body takes up full height for centering */
+        .min-h-screen {
+            min-height: 100vh;
+        }
+        textarea {
+            resize: vertical;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Quiz Container - Optimized for all screen sizes -->
+    <!-- max-w-xl for mobile, max-w-3xl for tablets/laptops, max-w-5xl for projectors/large screens -->
+    <div id="quiz-container" class="w-full max-w-xl sm:max-w-3xl lg:max-w-5xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl transition-all duration-300">
+        
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-indigo-700 mb-6 text-center">SwiftQuiz</h1>
+
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button id="tab-generator" class="flex-1 py-3 px-2 text-sm sm:text-base font-medium text-center transition duration-300 border-b-2" onclick="showScreen('generator-screen')">
+                Quiz Generator
+            </button>
+            <button id="tab-manual" class="flex-1 py-3 px-2 text-sm sm:text-base font-medium text-center transition duration-300 border-b-2" onclick="showScreen('start-screen')">
+                Manual Quiz Input
+            </button>
+        </div>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- 1. QUIZ GENERATOR SCREEN (NEW FEATURE) -->
+        <!-- ---------------------------------------------------- -->
+        <div id="generator-screen" class="">
+            <div class="mb-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <h3 class="font-bold text-yellow-800 mb-2 flex items-center text-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    Source Material Limit
+                </h3>
+                <p class="text-sm sm:text-base text-yellow-700">
+                    The maximum supported content is **100,000 characters**. Please use **plain text (.txt)** files or paste the text directly.
+                </p>
+            </div>
+
+            <label for="content-file" class="block text-sm sm:text-base font-medium text-gray-700 mb-2">
+                Upload Material (Single .txt File Max 1MB)
+            </label>
+            <input type="file" id="content-file" accept=".txt" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-4" onchange="previewFile()">
+
+            <!-- Responsive layout for inputs -->
+            <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
+                <div class="flex-1">
+                    <label for="num-questions-input" class="block text-sm font-medium text-gray-700 mb-1">Number of Questions to Generate:</label>
+                    <input type="number" id="num-questions-input" value="5" min="1" max="50" class="w-full p-3 border border-gray-300 rounded-lg text-center font-semibold text-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex-1">
+                    <label for="options-quantity-input" class="block text-sm font-medium text-gray-700 mb-1">Number of Options per Question:</label>
+                    <select id="options-quantity-input" class="w-full p-3 border border-gray-300 rounded-lg text-center font-semibold text-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                        <option value="4" selected>4 Options</option>
+                        <option value="5">5 Options</option>
+                        <option value="3">3 Options</option>
+                        <option value="2">2 Options</option>
+                    </select>
+                </div>
+            </div>
+
+            <textarea id="source-content" rows="10" placeholder="... or paste the source material text here if not uploading a file. (Max 100,000 chars)" class="w-full p-4 border border-gray-300 rounded-xl shadow-inner focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono"></textarea>
+            
+            <p id="gen-status-message" class="text-sm mt-3 mb-4 hidden"></p>
+
+            <button id="generate-button" onclick="handleQuizGeneration()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-green-400 text-lg">
+                Generate SwiftQuiz Questions
+            </button>
+        </div>
+
+
+        <!-- ---------------------------------------------------- -->
+        <!-- 2. MANUAL QUIZ INPUT SCREEN (ORIGINAL START SCREEN) -->
+        <!-- ---------------------------------------------------- -->
+        <div id="start-screen" class="hidden">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 text-center">Start Quiz</h2>
+
+            <div class="mb-6 space-y-4 p-4 bg-indigo-50 rounded-xl shadow-md">
+                <label class="block text-base font-medium text-gray-700">Set Quiz Parameters:</label>
+                <div class="flex items-center space-x-3">
+                    <input type="number" id="time-limit-input" value="5" min="1" class="w-20 p-2 border border-indigo-300 rounded-lg text-center font-semibold focus:ring-indigo-500 focus:border-indigo-500 text-lg">
+                    <span class="text-gray-600 text-base">Time Limit (minutes)</span>
+                </div>
+            </div>
+
+            <!-- Instruction Section -->
+            <div class="p-4 mb-4 bg-gray-100 rounded-lg border border-gray-300">
+                <h3 class="font-bold text-gray-800 mb-2 flex items-center text-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    Input Instructions (Mandatory Format)
+                </h3>
+                <p class="text-sm text-gray-600 mb-2">
+                    Separate questions by a **blank line**. Mark the correct option with an **asterisk (`*`)** at the start of the line.
+                </p>
+                <pre class="bg-white p-3 rounded-md text-xs sm:text-sm border border-dashed border-gray-400 overflow-x-auto font-mono text-gray-800">
+What is the highest mountain?
+Option 1
+*Option 2 (Correct)
+Option 3
+
+What is the capital of France?
+*Paris
+London
+Berlin</pre>
+            </div>
+            <!-- End Instruction Section -->
+
+            <label for="quiz-input" class="block text-sm sm:text-base font-medium text-gray-700 mb-2">Quiz Data (Paste or Generated Questions Appear Here):</label>
+            <textarea id="quiz-input" rows="12" placeholder="Paste your questions here using the format above..." class="w-full p-4 border border-gray-300 rounded-xl shadow-inner focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono"></textarea>
+            
+            <p id="validation-message" class="text-red-500 text-sm mt-3 mb-4 hidden"></p>
+
+            <button id="start-button" onclick="loadQuizData()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-indigo-400 text-lg">
+                Load & Start Quiz
+            </button>
+            <p class="text-sm text-gray-500 mt-6 text-center">Total Questions: <span id="total-questions" class="font-bold text-indigo-500">0</span></p>
+        </div>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- 3. QUIZ SCREEN (EXISTING) -->
+        <!-- ---------------------------------------------------- -->
+        <div id="quiz-screen" class="hidden">
+            <div id="timer-display" class="text-center mb-4 text-2xl sm:text-3xl font-extrabold text-red-600 p-3 bg-red-100 rounded-lg">
+                <!-- Timer will be injected here -->
+            </div>
+            <div class="mb-6">
+                <p class="text-base font-medium text-gray-500 mb-2">Question <span id="current-q-number">1</span> of <span id="total-q-count"></span></p>
+                <h2 id="question-text" class="text-xl sm:text-2xl font-semibold text-gray-800 bg-indigo-50 p-4 sm:p-6 rounded-xl shadow-inner">
+                    <!-- Question text goes here -->
+                </h2>
+            </div>
+            
+            <div id="options-container" class="space-y-4">
+                <!-- Options buttons go here -->
+            </div>
+
+            <div id="feedback-message" class="mt-6 p-4 rounded-xl text-center hidden font-semibold text-base sm:text-lg">
+                <!-- Feedback message goes here -->
+            </div>
+        </div>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- 4. RESULTS SCREEN (EXISTING) -->
+        <!-- ---------------------------------------------------- -->
+        <div id="results-screen" class="hidden text-center">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-indigo-600 mb-4">Quiz Complete!</h1>
+            
+            <!-- Performance Rating Section -->
+            <div id="performance-rating" class="p-6 my-6 rounded-xl shadow-xl transition-all duration-500">
+                <div id="rating-emoji" class="text-5xl sm:text-6xl mb-3"></div>
+                <div id="rating-category" class="text-2xl sm:text-3xl font-bold mb-2"></div>
+                <div id="rating-message" class="text-gray-700 text-base sm:text-lg"></div>
+            </div>
+            
+            <p class="text-gray-700 text-lg font-semibold mt-6 mb-4">Detailed Summary:</p>
+            
+            <!-- Responsive Summary Grid -->
+            <div class="grid grid-cols-3 gap-4 mb-8 border-t border-b py-4 bg-indigo-50 rounded-lg">
+                <div class="flex flex-col items-center p-2">
+                    <span id="score-display" class="text-4xl sm:text-5xl font-extrabold text-green-600">0</span>
+                    <span class="text-xs sm:text-sm text-gray-600 mt-1">Correct / <span id="total-display">0</span></span>
+                </div>
+                <div class="flex flex-col items-center p-2">
+                    <span id="time-taken-display" class="text-3xl sm:text-4xl font-extrabold text-indigo-500">0:00</span>
+                    <span class="text-xs sm:text-sm text-gray-600 mt-1">Time Taken (Total)</span>
+                </div>
+                <div class="flex flex-col items-center p-2">
+                    <span id="time-limit-summary" class="text-3xl sm:text-4xl font-extrabold text-gray-400">0 min</span>
+                    <span class="text-xs sm:text-sm text-gray-600 mt-1">Time Limit Set</span>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Question Speed Analysis</h2>
+
+            <!-- Responsive Speed Results -->
+            <div class="space-y-4">
+                <!-- Longest Question Display -->
+                <div id="longest-question-result" class="bg-red-50 p-4 rounded-xl text-left shadow-inner border border-red-200">
+                    <div class="text-sm font-semibold text-red-600 mb-1">Slowest Question (Needs Review):</div>
+                    <div id="longest-time" class="text-lg sm:text-xl font-bold text-red-800 mb-2"></div>
+                    <div id="longest-question-text" class="text-sm text-gray-700 italic"></div>
+                </div>
+
+                <!-- Shortest Question Display -->
+                <div id="shortest-question-result" class="bg-green-50 p-4 rounded-xl text-left shadow-inner border border-green-200">
+                    <div class="text-sm font-semibold text-green-600 mb-1">Fastest Question (Mastered):</div>
+                    <div id="shortest-time" class="text-lg sm:text-xl font-bold text-green-800 mb-2"></div>
+                    <div id="shortest-question-text" class="text-sm text-gray-700 italic"></div>
+                </div>
+            </div>
+
+            <button onclick="restartQuiz()" class="w-full bg-gray-400 hover:bg-gray-500 text-white font-semibold py-3 mt-6 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-gray-300 text-lg">
+                Restart with New Data
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. STATE VARIABLES ---
+        let currentQuizData = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let quizActive = false;
+        let timeLimitSeconds = 0;
+        let startTime = 0;
+        let timerInterval = null;
+        let questionStartTime = 0; 
+        let questionPerformance = [];
+        
+        // Define the maximum practical limit for browser and LLM API context
+        const MAX_CHARS = 100000; 
+
+        // --- 2. DOM ELEMENTS & INITIALIZATION ---
+        const generatorScreen = document.getElementById('generator-screen');
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const quizInput = document.getElementById('quiz-input');
+        const timeLimitInput = document.getElementById('time-limit-input');
+        const numQuestionsInput = document.getElementById('num-questions-input');
+        const optionsQuantityInput = document.getElementById('options-quantity-input');
+        const sourceContent = document.getElementById('source-content');
+        const contentFile = document.getElementById('content-file');
+        const generateButton = document.getElementById('generate-button');
+        const genStatusMessage = document.getElementById('gen-status-message');
+        
+        // Existing elements
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const totalQuestionsSpan = document.getElementById('total-questions');
+        const currentQNumberSpan = document.getElementById('current-q-number');
+        const totalQCountSpan = document.getElementById('total-q-count');
+        const scoreDisplay = document.getElementById('score-display');
+        const totalDisplay = document.getElementById('total-display');
+        const validationMessage = document.getElementById('validation-message');
+        const timerDisplay = document.getElementById('timer-display');
+        const timeTakenDisplay = document.getElementById('time-taken-display');
+        const timeLimitSummary = document.getElementById('time-limit-summary');
+        const longestTimeEl = document.getElementById('longest-time');
+        const longestQuestionTextEl = document.getElementById('longest-question-text');
+        const shortestTimeEl = document.getElementById('shortest-time');
+        const shortestQuestionTextEl = document.getElementById('shortest-question-text');
+        const performanceRatingEl = document.getElementById('performance-rating');
+        const ratingEmojiEl = document.getElementById('rating-emoji');
+        const ratingCategoryEl = document.getElementById('rating-category');
+        const ratingMessageEl = document.getElementById('rating-message');
+
+
+        function initializeInput() {
+            quizInput.value = '';
+            totalQuestionsSpan.textContent = '0';
+            showScreen('generator-screen');
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeInput);
+
+        // --- Tab Control ---
+        function showScreen(screenId) {
+            generatorScreen.classList.add('hidden');
+            startScreen.classList.add('hidden');
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+
+            // Apply active tab styles
+            const tabGenerator = document.getElementById('tab-generator');
+            const tabManual = document.getElementById('tab-manual');
+
+            tabGenerator.classList.remove('border-indigo-600', 'text-indigo-600', 'border-gray-200');
+            tabManual.classList.remove('border-indigo-600', 'text-indigo-600', 'border-gray-200');
+
+            if (screenId === 'generator-screen') {
+                tabGenerator.classList.add('border-indigo-600', 'text-indigo-600');
+                tabManual.classList.add('border-gray-200');
+            } else if (screenId === 'start-screen') {
+                tabManual.classList.add('border-indigo-600', 'text-indigo-600');
+                tabGenerator.classList.add('border-gray-200');
+
+                // Ensure the total questions count is updated when viewing the manual screen
+                try {
+                    const data = parseSimpleText(quizInput.value);
+                    totalQuestionsSpan.textContent = data.length;
+                } catch {
+                    totalQuestionsSpan.textContent = '0';
+                }
+            }
+        }
+
+        // --- FILE HANDLING FOR GENERATOR ---
+
+        function previewFile() {
+            const file = contentFile.files[0];
+            if (!file) return;
+
+            // Simple check for size (e.g., max 1MB, which is safe for 100k chars)
+            if (file.size > 1024 * 1024) {
+                genStatusMessage.textContent = 'File too large (Max 1MB allowed).';
+                genStatusMessage.classList.remove('hidden', 'text-green-500', 'text-gray-700');
+                genStatusMessage.classList.add('text-red-500');
+                contentFile.value = ''; // Clear file input
+                sourceContent.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const textContent = e.target.result;
+
+                if (textContent.length > MAX_CHARS) {
+                    genStatusMessage.textContent = `File content exceeds the ${MAX_CHARS.toLocaleString()} character limit. Please shorten the material.`;
+                    genStatusMessage.classList.remove('hidden', 'text-green-500', 'text-gray-700');
+                    genStatusMessage.classList.add('text-red-500');
+                    sourceContent.value = textContent.substring(0, MAX_CHARS); // Truncate content in text area
+                    // Do not clear file input here, just warn.
+                    return;
+                }
+
+                sourceContent.value = textContent;
+                genStatusMessage.textContent = `File loaded: ${file.name}. Ready to generate.`;
+                genStatusMessage.classList.remove('hidden', 'text-red-500', 'text-gray-700');
+                genStatusMessage.classList.add('text-green-500');
+            };
+            reader.onerror = function() {
+                genStatusMessage.textContent = 'Error reading file.';
+                genStatusMessage.classList.remove('hidden', 'text-green-500', 'text-gray-700');
+                genStatusMessage.classList.add('text-red-500');
+            };
+            reader.readAsText(file);
+        }
+
+        // --- LLM API CALL FOR GENERATION ---
+        
+        async function exponentialBackoffFetch(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    if (response.status === 429 || response.status >= 500) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        async function generateQuizFromContent(content, count, optionCount) {
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const systemPrompt = `You are a world-class test designer. Your goal is to generate ${count} multiple-choice quiz questions from the provided material. The questions must be challenging, focus on critical concepts for exam success, and be formatted perfectly for automated parsing.`;
+            
+            const userQuery = `Using ONLY the following source material, generate exactly ${count} multiple-choice questions. Each question must have exactly ${optionCount} options, and exactly one correct option marked with a leading asterisk (*). Separate each question block by a blank line. The format MUST be preserved exactly as shown below:
+
+Question text goes here?
+Option A
+*Option B (The Correct Answer)
+Option C
+
+Another Question?
+*Answer 1
+Answer 2
+Answer 3
+
+SOURCE MATERIAL:
+---
+${content}
+---`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            genStatusMessage.textContent = 'Generating questions... This may take a moment.';
+            generateButton.disabled = true;
+            generateButton.classList.remove('bg-green-600');
+            generateButton.classList.add('bg-gray-500');
+            genStatusMessage.classList.add('text-gray-700');
+            genStatusMessage.classList.remove('hidden', 'text-red-500', 'text-green-500');
+
+
+            try {
+                const response = await exponentialBackoffFetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (generatedText) {
+                    // Update the main quiz input field
+                    quizInput.value = generatedText.trim();
+                    
+                    genStatusMessage.textContent = '✅ Quiz successfully generated and loaded into the "Manual Quiz Input" tab.';
+                    genStatusMessage.classList.remove('text-gray-700', 'text-red-500');
+                    genStatusMessage.classList.add('text-green-500');
+                    
+                    // Switch to the Manual Input tab so the user can see the result and start
+                    showScreen('start-screen');
+
+                } else {
+                    throw new Error("LLM did not return text or the response structure was invalid.");
+                }
+
+            } catch (error) {
+                console.error("API Generation Error:", error);
+                genStatusMessage.textContent = `❌ Generation failed: ${error.message}. Please check your source material and try again.`;
+                genStatusMessage.classList.remove('text-gray-700', 'text-green-500');
+                genStatusMessage.classList.add('text-red-500');
+            } finally {
+                generateButton.disabled = false;
+                generateButton.classList.add('bg-green-600');
+                generateButton.classList.remove('bg-gray-500');
+            }
+        }
+
+        function handleQuizGeneration() {
+            const content = sourceContent.value.trim();
+            const count = parseInt(numQuestionsInput.value);
+            const optionCount = parseInt(optionsQuantityInput.value); // Get new options count
+
+            genStatusMessage.classList.add('hidden');
+
+            if (!content) {
+                genStatusMessage.textContent = 'Please upload a file or paste content to generate questions.';
+                genStatusMessage.classList.remove('hidden', 'text-green-500');
+                genStatusMessage.classList.add('text-red-500');
+                return;
+            }
+            
+            // Updated character limit validation
+            if (content.length > MAX_CHARS) {
+                genStatusMessage.textContent = `Source material is too long (Max ${MAX_CHARS.toLocaleString()} characters). Current length: ${content.length.toLocaleString()}`;
+                genStatusMessage.classList.remove('hidden', 'text-green-500');
+                genStatusMessage.classList.add('text-red-500');
+                return;
+            }
+
+            if (isNaN(count) || count < 1 || count > 50) {
+                genStatusMessage.textContent = 'Please enter a valid number of questions (1-50).';
+                genStatusMessage.classList.remove('hidden', 'text-green-500');
+                genStatusMessage.classList.add('text-red-500');
+                return;
+            }
+            
+            if (isNaN(optionCount) || optionCount < 2 || optionCount > 5) {
+                genStatusMessage.textContent = 'Internal Error: Invalid number of options selected.';
+                genStatusMessage.classList.remove('hidden', 'text-green-500');
+                genStatusMessage.classList.add('text-red-500');
+                return;
+            }
+            
+            // Start the generation process
+            generateQuizFromContent(content, count, optionCount);
+        }
+
+        // --- 4. TIME UTILITIES (EXISTING) ---
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        function startTimer() {
+            const endTime = startTime + (timeLimitSeconds * 1000);
+            
+            clearInterval(timerInterval);
+
+            const updateTimer = () => {
+                const now = Date.now();
+                const timeLeft = Math.max(0, endTime - now);
+                const secondsLeft = Math.ceil(timeLeft / 1000);
+
+                timerDisplay.textContent = `Time Left: ${formatTime(secondsLeft)}`;
+                timerDisplay.classList.toggle('text-red-600', secondsLeft > 60);
+                timerDisplay.classList.toggle('bg-yellow-100', secondsLeft <= 60 && secondsLeft > 10);
+                timerDisplay.classList.toggle('bg-red-200', secondsLeft <= 10);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "TIME'S UP!";
+                    showResults(true); 
+                }
+            };
+            
+            updateTimer(); 
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // --- 5. DATA LOADING AND PARSING (EXISTING) ---
+
+        function parseSimpleText(text) {
+            const questions = [];
+            // This regex handles separation by one or more blank lines
+            const questionBlocks = text.split(/\n\s*\n/).filter(block => block.trim() !== '');
+
+            for (const block of questionBlocks) {
+                const lines = block.split('\n').map(line => line.trim()).filter(line => line !== '');
+                
+                // Question requires at least a question line and one option line (1 + 1 = 2)
+                if (lines.length < 2) {
+                    throw new Error(`Question block is incomplete: missing question or options in block starting with "${lines[0] || '...'}"`);
+                }
+
+                const question = lines[0];
+                const options = [];
+                let correctAnswerIndex = -1;
+
+                for (let i = 1; i < lines.length; i++) {
+                    let optionText = lines[i];
+                    
+                    if (optionText.startsWith('*')) {
+                        correctAnswerIndex = options.length;
+                        optionText = optionText.substring(1).trim(); 
+                    }
+                    options.push(optionText);
+                }
+
+                if (correctAnswerIndex === -1) {
+                    throw new Error(`Question "${question.substring(0, Math.min(question.length, 30))}..." is missing the correct answer marker (*).`);
+                }
+
+                questions.push({ question, options, correctAnswerIndex });
+            }
+            return questions;
+        }
+
+        function loadQuizData() {
+            const dataString = quizInput.value.trim();
+            const inputMinutes = parseInt(timeLimitInput.value);
+
+            validationMessage.classList.add('hidden');
+            
+            if (!dataString) {
+                validationMessage.textContent = 'Please enter your quiz data in the text area using the specified format.';
+                validationMessage.classList.remove('hidden');
+                return;
+            }
+            
+            if (isNaN(inputMinutes) || inputMinutes <= 0) {
+                validationMessage.textContent = 'Please set a valid time limit (1 minute or more).';
+                validationMessage.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const parsedData = parseSimpleText(dataString);
+                
+                if (parsedData.length === 0) {
+                    throw new Error("No valid questions were parsed. Check the formatting.");
+                }
+
+                currentQuizData = parsedData;
+                timeLimitSeconds = inputMinutes * 60;
+                startQuiz();
+
+            } catch (e) {
+                validationMessage.textContent = `Error loading quiz data: ${e.message}`;
+                validationMessage.classList.remove('hidden');
+            }
+        }
+
+        // --- 6. QUIZ FLOW FUNCTIONS (EXISTING) ---
+
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            generatorScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            quizActive = true;
+            questionPerformance = []; // Reset performance log
+            startTime = Date.now(); 
+            
+            totalQCountSpan.textContent = currentQuizData.length;
+            totalDisplay.textContent = currentQuizData.length;
+            
+            startTimer();
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex >= currentQuizData.length) {
+                showResults();
+                return;
+            }
+
+            const currentQ = currentQuizData[currentQuestionIndex];
+            
+            currentQNumberSpan.textContent = currentQuestionIndex + 1;
+            questionText.textContent = currentQ.question;
+            
+            optionsContainer.innerHTML = '';
+            feedbackMessage.classList.add('hidden');
+            feedbackMessage.textContent = '';
+            
+            questionStartTime = Date.now(); 
+
+            currentQ.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                // Responsive button styling: slightly larger padding and font on larger screens
+                button.className = 'w-full text-left bg-gray-100 hover:bg-indigo-200 text-gray-800 p-3 sm:p-4 rounded-xl shadow-md transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-75 text-base sm:text-lg';
+                button.onclick = () => checkAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedIndex, clickedButton) {
+            if (!quizActive) return;
+
+            if (timerInterval === null || timerDisplay.textContent === "TIME'S UP!") {
+                showResults(true);
+                return;
+            }
+            
+            const timeElapsedMs = Date.now() - questionStartTime;
+            const timeElapsedSec = Math.floor(timeElapsedMs / 1000);
+
+            quizActive = false;
+            const currentQ = currentQuizData[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQ.correctAnswerIndex;
+            const allButtons = optionsContainer.querySelectorAll('button');
+            
+            // Log performance
+            questionPerformance.push({
+                questionText: currentQ.question,
+                timeSeconds: timeElapsedSec,
+                isCorrect: isCorrect
+            });
+
+            allButtons.forEach(btn => btn.disabled = true);
+
+            // Highlight options
+            allButtons.forEach((btn, index) => {
+                if (index === currentQ.correctAnswerIndex) {
+                    btn.classList.add('bg-green-200', 'text-green-800', 'border-2', 'border-green-500');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-indigo-200', 'shadow-md');
+                } else if (index === selectedIndex) {
+                    btn.classList.add('bg-red-200', 'text-red-800', 'border-2', 'border-red-500');
+                    btn.classList.remove('bg-gray-100', 'hover:bg-indigo-200', 'shadow-md');
+                }
+            });
+
+            // Show feedback
+            if (isCorrect) {
+                score++;
+                feedbackMessage.textContent = '✅ Correct! (Time: ' + timeElapsedSec + 's)';
+                feedbackMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700');
+                feedbackMessage.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                feedbackMessage.textContent = '❌ Incorrect. The correct answer is highlighted. (Time: ' + timeElapsedSec + 's)';
+                feedbackMessage.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                feedbackMessage.classList.add('bg-red-100', 'text-red-700');
+            }
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                quizActive = true;
+                displayQuestion();
+            }, 1500);
+        }
+
+        // --- 7. RESULTS LOGIC (EXISTING) ---
+        function getPerformanceRating(percentage) {
+            if (percentage >= 90) {
+                return { category: "Excellent! 🎉", message: "Outstanding performance! You've mastered this material.", color: "bg-yellow-200 border-yellow-500", text: "text-yellow-800" };
+            } else if (percentage >= 70) {
+                return { category: "Great Job! ⭐", message: "Solid performance! Just a little polish needed on those tricky questions.", color: "bg-green-200 border-green-500", text: "text-green-800" };
+            } else if (percentage >= 50) {
+                return { category: "Good Start! 👍", message: "You've got the basics down. Focus on reviewing the areas where you spent the most time.", color: "bg-blue-200 border-blue-500", text: "text-blue-800" };
+            } else {
+                return { category: "Keep Practicing! 💪", message: "A challenging quiz! Review the concepts and try again. You'll get there!", color: "bg-red-200 border-red-500", text: "text-red-800" };
+            }
+        }
+
+        function analyzeAndDisplaySpeedResults() {
+            if (questionPerformance.length === 0) {
+                longestTimeEl.textContent = 'N/A';
+                longestQuestionTextEl.textContent = 'No questions were answered.';
+                shortestTimeEl.textContent = 'N/A';
+                shortestQuestionTextEl.textContent = 'No questions were answered.';
+                return;
+            }
+
+            const slowest = questionPerformance.reduce((prev, current) => {
+                return (prev.timeSeconds > current.timeSeconds) ? prev : current;
+            });
+
+            const fastest = questionPerformance.reduce((prev, current) => {
+                // Ignore 0 seconds (likely indicates an immediate click without conscious effort)
+                if (current.timeSeconds === 0) return prev; 
+                return (prev.timeSeconds < current.timeSeconds || prev.timeSeconds === 0) ? current : prev;
+            }, { timeSeconds: Number.MAX_SAFE_INTEGER, questionText: 'N/A' }); 
+
+            // Display longest
+            longestTimeEl.textContent = `${slowest.timeSeconds} seconds`;
+            longestQuestionTextEl.textContent = `"${slowest.questionText}"`;
+
+            // Display shortest
+            if (fastest.timeSeconds === Number.MAX_SAFE_INTEGER) {
+                shortestTimeEl.textContent = 'Less than 1 second';
+                shortestQuestionTextEl.textContent = 'All questions answered very quickly or only one was recorded.';
+            } else {
+                shortestTimeEl.textContent = `${fastest.timeSeconds} seconds`;
+                shortestQuestionTextEl.textContent = `"${fastest.questionText}"`;
+            }
+        }
+
+        function showResults(timedOut = false) {
+            clearInterval(timerInterval);
+            
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            
+            // Calculate total time taken
+            const timeElapsed = Date.now() - startTime;
+            const secondsElapsed = Math.floor(timeElapsed / 1000);
+            const totalQuestions = currentQuizData.length;
+            const percentage = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+            
+            // Apply performance rating
+            const rating = getPerformanceRating(percentage);
+            performanceRatingEl.className = `p-6 my-6 rounded-xl shadow-xl transition-all duration-500 ${rating.color} border-4`;
+            ratingEmojiEl.textContent = rating.category.split(' ')[1] || '🤔';
+            ratingCategoryEl.textContent = rating.category.split(' ')[0];
+            ratingMessageEl.textContent = rating.message;
+
+            // Update main summary display
+            scoreDisplay.textContent = score;
+            timeTakenDisplay.textContent = formatTime(secondsElapsed);
+            timeLimitSummary.textContent = `${timeLimitSeconds / 60} min`;
+
+            // Adjust completion message if timed out
+            const completionTitle = document.querySelector('#results-screen h1');
+            if (timedOut) {
+                completionTitle.textContent = "Time Expired! ⏳";
+            } else {
+                completionTitle.textContent = "Quiz Complete! 🎉";
+            }
+
+            // Run the analysis logic
+            analyzeAndDisplaySpeedResults();
+        }
+
+        function restartQuiz() {
+            resultsScreen.classList.add('hidden');
+            showScreen('generator-screen'); // Return to the generator screen by default
+            
+            clearInterval(timerInterval);
+            timerInterval = null;
+            
+            // Update total questions count on restart based on current input
+            try {
+                const data = parseSimpleText(quizInput.value);
+                totalQuestionsSpan.textContent = data.length;
+            } catch {
+                totalQuestionsSpan.textContent = '0';
+            }
+        }
+    </script>
+</body>
+</html>
