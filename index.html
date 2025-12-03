@@ -385,6 +385,9 @@ Berlin</pre>
         }
 
         async function generateQuizFromContent(content, count, optionCount) {
+            // IMPORTANT: If running this file outside of a supported Canvas environment (e.g., locally), 
+            // you must replace the empty quotes below with your actual Gemini API key 
+            // to avoid a 403 Forbidden error.
             const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             
@@ -447,7 +450,7 @@ ${content}
 
             } catch (error) {
                 console.error("API Generation Error:", error);
-                genStatusMessage.textContent = `❌ Generation failed: ${error.message}. Please check your source material and try again.`;
+                genStatusMessage.textContent = `❌ Generation failed: ${error.message}. Please check your source material and ensure your API key is valid.`;
                 genStatusMessage.classList.remove('text-gray-700', 'text-green-500');
                 genStatusMessage.classList.add('text-red-500');
             } finally {
